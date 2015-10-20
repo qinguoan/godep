@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 )
 
 var cmdRestore = &Command{
@@ -25,25 +24,22 @@ func runRestore(cmd *Command, args []string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	hadError := false
+	hadError := map[Dependency]bool{}
 	for _, dep := range g.Deps {
+
 		err := download(dep)
 		if err != nil {
-			log.Println("restore:", err)
-			hadError = true
+			hadError[dep] = true
 		}
 	}
-	if !hadError {
-		for _, dep := range g.Deps {
-			err := restore(dep)
-			if err != nil {
-				log.Println("restore:", err)
-				hadError = true
-			}
+	for _, dep := range g.Deps {
+		err := restore(dep)
+		if err != nil && hadError[dep] {
+			log.Printf("download or restore: %v err: %v", dep.ImportPath, err)
+			hadError[dep] = true
+		} else {
+			log.Printf("restore: %v OK", dep.ImportPath)
 		}
-	}
-	if hadError {
-		os.Exit(1)
 	}
 }
 
